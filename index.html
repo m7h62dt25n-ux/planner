@@ -220,8 +220,9 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
     <div class="tab-btn active" id="tab-week" onclick="showPage('week')"><div class="ticon">📅</div><div class="tlbl">Неделя</div></div>
     <div class="tab-btn" id="tab-habits" onclick="showPage('habits')"><div class="ticon">🔥</div><div class="tlbl">Привычки</div></div>
     <div class="tab-btn" id="tab-diary" onclick="showPage('diary')"><div class="ticon">📓</div><div class="tlbl">Дневник</div></div>
-    <div class="tab-btn" id="tab-xp" onclick="showPage('xp')"><div class="ticon">⚡</div><div class="tlbl">Прогресс</div></div>
-    <div class="tab-btn" id="tab-coach" onclick="showPage('coach')"><div class="ticon">🤖</div><div class="tlbl">AI-Коуч</div></div>
+    <div class="tab-btn" id="tab-storage" onclick="showPage('storage')"><div class="ticon">💡</div><div class="tlbl">Идеи</div></div>
+    <div class="tab-btn" id="tab-xp" onclick="showPage('xp')"><div class="ticon">⚡</div><div class="tlbl">XP</div></div>
+    <div class="tab-btn" id="tab-coach" onclick="showPage('coach')"><div class="ticon">🤖</div><div class="tlbl">Коуч</div></div>
   </div>
 </div>
 
@@ -688,6 +689,16 @@ function renderEnergyRating(){
 
 function refreshCoach(){renderCoach();}
 
+function renderStorage(){
+  const items=stData();
+  const em=editMode?'edit-mode':'';
+  document.getElementById('pageScroll').innerHTML=`
+  <div class="section card ${em}">
+    ${items.map((item,i)=>`<div class="storage-item"><div class="scheck ${item.done?'done':''}" onclick="toggleSt(${i})">✓</div><input class="sinput ${item.done?'done':''}" value="${(item.text||'').replace(/"/g,'&quot;')}" onchange="editSt(${i},this.value)" /><button class="del-btn" style="opacity:${editMode?1:0}" onclick="showCtx('storage',{si:${i},text:'${(item.text||'').replace(/'/g,"\\'")}'})" >⋯</button></div>`).join('')}
+    ${items.length===0?'<div style="padding:24px;text-align:center;color:var(--text3)">Нажмите + чтобы добавить идею</div>':''}
+  </div>`;
+}
+
 function showPage(p){
   page=p;editMode=false;
   document.getElementById('editToggle').textContent='Изменить';
@@ -707,6 +718,7 @@ function render(){
     case 'week':renderWeek();break;
     case 'habits':renderHabits();break;
     case 'diary':renderDiary();break;
+    case 'storage':renderStorage();break;
     case 'xp':renderXP();break;
     case 'coach':renderCoach();break;
   }
