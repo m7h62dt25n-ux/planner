@@ -667,7 +667,11 @@ async function renderCoach(){
     <div class="coach-header"><div class="coach-avatar">⚡</div><div><div class="coach-name">Рейтинг энергии</div><div class="coach-sub">Как состояние влияет на результат</div></div></div>
     ${renderEnergyRating()}
   </div>
-  <button class="coach-refresh" onclick="refreshCoach()">🔄 Обновить анализ</button>`;
+  <button class="coach-refresh" onclick="refreshCoach()">🔄 Обновить анализ</button>
+  <div style="display:flex;gap:8px;margin-top:8px">
+    <button class="coach-refresh" style="flex:1;background:rgba(74,222,128,0.08);border-color:rgba(74,222,128,0.2);color:var(--green)" onclick="exportData()">💾 Сохранить данные</button>
+    <button class="coach-refresh" style="flex:1" onclick="importData()">📂 Восстановить</button>
+  </div>`;
 
   const advice=await getCoachAdvice();
   const msgEl=document.getElementById('coachMsg');
@@ -688,6 +692,55 @@ function renderEnergyRating(){
 }
 
 function refreshCoach(){renderCoach();}
+
+// ── BACKUP / RESTORE ──
+function exportData(){
+  const keys=['habits2','month','storage','xp','achievements','training_notes'];
+  const data={version:1,date:new Date().toISOString()};
+  // Export all week data
+  const weeks={};
+  for(let i=-52;i<=52;i++){
+    const k='wk_'+i;
+    const v=localStorage.getItem(k);
+    if(v)weeks[k]=JSON.parse(v);
+  }
+  data.weeks=weeks;
+  keys.forEach(k=>{const v=localStorage.getItem(k);if(v)data[k]=JSON.parse(v);});
+
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download='onelife_backup_'+new Date().toLocaleDateString('ru').replace(/\./g,'-')+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+  showXpToast('✅ Данные сохранены!');
+}
+
+function importData(){
+  const input=document.createElement('input');
+  input.type='file';input.accept='.json';
+  input.onchange=e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data.version){alert('Неверный формат файла');return;}
+        // Restore weeks
+        if(data.weeks)Object.entries(data.weeks).forEach(([k,v])=>sv(k,v));
+        // Restore other keys
+        ['habits2','month','storage','xp','achievements','training_notes'].forEach(k=>{
+          if(data[k])sv(k,data[k]);
+        });
+        showXpToast('✅ Данные восстановлены!');
+        setTimeout(()=>render(),500);
+      }catch(err){alert('Ошибка при чтении файла');}
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
 
 function renderStorage(){
   const items=stData();
