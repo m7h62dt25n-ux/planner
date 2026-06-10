@@ -781,23 +781,27 @@ function render(){
 const _t=new Date().getDay();selDay=_t===0?6:_t-1;
 
 // ── ДОСТУП ──
-// Формат: 'username_lowercase': 'КОД'
-// Чтобы добавить покупателя: добавь строку 'его_ник': 'его_код'
-const USERS = {
-  'demo': 'ONELIFE2025',
-  // Добавляй сюда покупателей:
-  // 'ivan_petrov': 'KOD123',
-  // 'masha_sm': 'XYZ456',
-};
-
-function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;}return Math.abs(h).toString(36);}
+// Ключи генерирует бот командой /adduser
+// Формат ключа: OL-XXXXXX-YYYYYYYY
+// Проверка: ключ должен начинаться с OL- и быть длиной 20 символов
 
 function checkAccess(){
   const saved=ld('ol_access',null);
-  if(saved&&saved.exp>Date.now()&&USERS[saved.u]&&hashStr(USERS[saved.u])===saved.h){
-    return true;
+  if(saved&&saved.exp>Date.now()&&saved.u&&saved.k){
+    return validateKey(saved.u, saved.k);
   }
   return false;
+}
+
+function validateKey(username, key){
+  // Базовая проверка формата: OL-XXXXXX-YYYYYYYY
+  if(!key||!key.startsWith('OL-'))return false;
+  const parts=key.split('-');
+  if(parts.length!==3)return false;
+  if(parts[1].length!==6||parts[2].length!==8)return false;
+  // Проверка что ключ содержит только допустимые символы
+  const valid=/^[A-Z0-9]+$/.test(parts[1])&&/^[A-Z0-9]+$/.test(parts[2]);
+  return valid&&username.length>=2;
 }
 
 function doLogin(){
@@ -806,12 +810,11 @@ function doLogin(){
   const err=document.getElementById('li_err');
 
   if(!u||!c){err.textContent='Заполните все поля';return;}
-  if(!USERS[u]||USERS[u]!==c){
-    err.textContent='Неверный username или код доступа';
-    document.getElementById('li_c').value='';
+  if(!validateKey(u,c)){
+    err.textContent='Неверный формат кода. Пример: OL-ABC123-DEF45678';
     return;
   }
-  sv('ol_access',{u,h:hashStr(c),exp:Date.now()+365*24*60*60*1000});
+  sv('ol_access',{u,k:c,exp:Date.now()+365*24*60*60*1000});
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('fab').style.display='flex';
