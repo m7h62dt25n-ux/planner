@@ -287,13 +287,47 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 </head>
 <body>
 
+<style>
+.li-screen{position:fixed;inset:0;z-index:500;background:#080808;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px}
+.li-logo{font-family:'Manrope',sans-serif;font-size:28px;font-weight:900;letter-spacing:4px;margin-bottom:8px}
+.li-logo span{color:#6C8EFF}
+.li-tagline{font-size:13px;color:#444;letter-spacing:2px;margin-bottom:48px}
+.li-card{width:100%;max-width:360px;background:#111;border:0.5px solid rgba(255,255,255,0.08);border-radius:24px;padding:28px 24px}
+.li-title{font-family:'Manrope',sans-serif;font-size:20px;font-weight:800;margin-bottom:6px}
+.li-sub{font-size:13px;color:#666;margin-bottom:24px;line-height:1.5}
+.li-label{font-size:11px;font-weight:600;color:#555;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px}
+.li-inp{width:100%;background:#191919;border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;color:#F0F0F0;font-size:16px;font-family:'Inter',sans-serif;outline:none;margin-bottom:16px;-webkit-appearance:none;transition:border-color 0.15s}
+.li-inp:focus{border-color:#6C8EFF}
+.li-btn{width:100%;padding:16px;background:#6C8EFF;border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;font-family:'Manrope',sans-serif;cursor:pointer;margin-top:4px;transition:all 0.15s}
+.li-btn:active{opacity:0.85;transform:scale(0.98)}
+.li-err{font-size:13px;color:#F87171;text-align:center;margin-top:12px;min-height:20px}
+.li-footer{margin-top:32px;font-size:12px;color:#333;text-align:center}
+</style>
+
+<div id="loginScreen" style="display:none">
+  <div class="li-screen">
+    <div class="li-logo">ONE<span>·</span>LIFE</div>
+    <div class="li-tagline">ПЛАНЕР</div>
+    <div class="li-card">
+      <div class="li-title">Вход в приложение</div>
+      <div class="li-sub">Введите ваш Telegram username и код доступа, который получили после покупки</div>
+      <div class="li-label">Telegram username</div>
+      <input class="li-inp" id="li_u" type="text" placeholder="username (без @)" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+      <div class="li-label">Код доступа</div>
+      <input class="li-inp" id="li_c" type="text" placeholder="Ваш код" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+      <button class="li-btn" onclick="doLogin()">Войти →</button>
+      <div class="li-err" id="li_err"></div>
+    </div>
+    <div class="li-footer">Нет кода? <a href="https://t.me/YOUR_USERNAME" style="color:#6C8EFF;text-decoration:none">Купить доступ</a></div>
+  </div>
+</div>
+
 <div id="splash">
   <div class="splash-logo">ONE<span>·</span>LIFE</div>
   <div class="splash-sub">ПЛАНЕР</div>
 </div>
 
-<div id="app">
-  <div class="topbar">
+<div id="app" style="display:none">  <div class="topbar">
     <div class="topbar-logo">ONE<span>·</span>LIFE</div>
     <div class="topbar-right">
       <div class="week-nav hidden" id="weekNav">
@@ -306,6 +340,7 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
         <div class="xp-pill-bar"><div class="xp-pill-fill" id="xpFill" style="width:0%"></div></div>
       </div>
       <button class="edit-btn" id="editBtn" onclick="toggleEdit()">Изменить</button>
+      <button class="edit-btn" onclick="doLogout()" style="color:#555;border-color:transparent">Выйти</button>
     </div>
   </div>
 
@@ -321,7 +356,7 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
   </div>
 </div>
 
-<button class="fab" id="fab" onclick="openAdd()">+</button>
+<button class="fab" id="fab" style="display:none" onclick="openAdd()">+</button>
 <div class="xp-toast" id="toast"></div>
 
 <div class="overlay hidden" id="addOv" onclick="ovClick(event,'addOv')">
@@ -744,9 +779,73 @@ function render(){
 }
 
 const _t=new Date().getDay();selDay=_t===0?6:_t-1;
-window.addEventListener('load',()=>{
+
+// ── ДОСТУП ──
+// Формат: 'username_lowercase': 'КОД'
+// Чтобы добавить покупателя: добавь строку 'его_ник': 'его_код'
+const USERS = {
+  'demo': 'ONELIFE2025',
+  // Добавляй сюда покупателей:
+  // 'ivan_petrov': 'KOD123',
+  // 'masha_sm': 'XYZ456',
+};
+
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++){h=Math.imul(31,h)+s.charCodeAt(i)|0;}return Math.abs(h).toString(36);}
+
+function checkAccess(){
+  const saved=ld('ol_access',null);
+  if(saved&&saved.exp>Date.now()&&USERS[saved.u]&&hashStr(USERS[saved.u])===saved.h){
+    return true;
+  }
+  return false;
+}
+
+function doLogin(){
+  const u=document.getElementById('li_u').value.trim().toLowerCase().replace('@','');
+  const c=document.getElementById('li_c').value.trim().toUpperCase();
+  const err=document.getElementById('li_err');
+
+  if(!u||!c){err.textContent='Заполните все поля';return;}
+  if(!USERS[u]||USERS[u]!==c){
+    err.textContent='Неверный username или код доступа';
+    document.getElementById('li_c').value='';
+    return;
+  }
+  sv('ol_access',{u,h:hashStr(c),exp:Date.now()+365*24*60*60*1000});
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('fab').style.display='flex';
   updXP();render();
-  setTimeout(()=>{const s=document.getElementById('splash');s.style.opacity='0';setTimeout(()=>s.style.display='none',600);},900);
+}
+
+function doLogout(){
+  localStorage.removeItem('ol_access');
+  location.reload();
+}
+
+window.addEventListener('load',()=>{
+  const splash=document.getElementById('splash');
+  setTimeout(()=>{
+    splash.style.opacity='0';
+    setTimeout(()=>{
+      splash.style.display='none';
+      if(checkAccess()){
+        document.getElementById('loginScreen').style.display='none';
+        document.getElementById('app').style.display='flex';
+        document.getElementById('fab').style.display='flex';
+        updXP();render();
+      } else {
+        document.getElementById('loginScreen').style.display='flex';
+        document.getElementById('app').style.display='none';
+        document.getElementById('fab').style.display='none';
+        setTimeout(()=>document.getElementById('li_u').focus(),100);
+      }
+    },600);
+  },900);
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&document.getElementById('loginScreen').style.display!=='none')doLogin();
 });
 </script>
 </body>
