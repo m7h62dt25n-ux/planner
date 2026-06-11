@@ -142,13 +142,13 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 
 /* ── BAR CHART ── */
 .bar-section{padding:16px}
-.bar-chart{display:flex;gap:6px;align-items:flex-end;height:80px;margin-bottom:10px}
-.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
-.bar-track{width:100%;flex:1;background:var(--bg4);border-radius:6px 6px 0 0;overflow:hidden;display:flex;flex-direction:column}
-.bar-spacer{width:100%;min-height:0;transition:flex 0.7s cubic-bezier(.4,0,.2,1)}
-.bar-fill{width:100%;min-height:0;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:6px 6px 0 0;transition:flex 0.7s cubic-bezier(.4,0,.2,1)}
+.bar-chart{display:flex;gap:6px;align-items:stretch;height:80px;margin-bottom:10px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar-track{width:100%;flex:1;min-height:0;background:var(--bg4);border-radius:6px 6px 0 0;overflow:hidden;display:flex;flex-direction:column}
+.bar-spacer{width:100%;flex-shrink:0;transition:flex-grow 0.7s cubic-bezier(.4,0,.2,1)}
+.bar-fill{width:100%;flex-shrink:0;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:6px 6px 0 0;transition:flex-grow 0.7s cubic-bezier(.4,0,.2,1)}
 .bar-fill.today-bar{background:linear-gradient(180deg,var(--purple),var(--accent))}
-.bar-lbl{font-size:9px;color:var(--text3);font-weight:500}
+.bar-lbl{font-size:9px;color:var(--text3);font-weight:500;flex-shrink:0}
 
 /* ── HABITS ── */
 .habit-card{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid var(--border);border-radius:var(--r-xl);padding:14px 16px;margin-bottom:10px;transition:all 0.2s}
