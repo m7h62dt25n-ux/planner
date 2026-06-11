@@ -522,6 +522,107 @@ html,body{height:100%;width:100%;background:#000;color:var(--text);font-family:-
 /* ── HIDDEN ── */
 .hidden{display:none!important}
 
+/* ── LIGHT THEME ── */
+[data-theme="light"]{
+  --bg:      #F2F2F7;
+  --bg2:     #FFFFFF;
+  --bg3:     #F2F2F7;
+  --bg4:     #E5E5EA;
+  --bg5:     #D1D1D6;
+
+  --border:  rgba(60,60,67,0.10);
+  --border2: rgba(60,60,67,0.16);
+  --border3: rgba(60,60,67,0.26);
+
+  --text:    #000000;
+  --text2:   rgba(60,60,67,0.65);
+  --text3:   rgba(60,60,67,0.38);
+
+  --glass:      rgba(255,255,255,0.72);
+  --glass2:     rgba(255,255,255,0.85);
+  --glass3:     rgba(255,255,255,0.95);
+  --glass-fill: rgba(242,242,247,0.82);
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body{background:#F2F2F7!important;color:#000}
+
+[data-theme="light"] .topbar{background:rgba(242,242,247,0.82);border-bottom:0.33px solid rgba(60,60,67,0.12)}
+[data-theme="light"] .topbar-logo{color:#000}
+[data-theme="light"] .topbar-logo span{color:var(--accent);-webkit-text-fill-color:var(--accent)}
+[data-theme="light"] .edit-btn{color:var(--accent)}
+
+[data-theme="light"] .tabbar{background:rgba(242,242,247,0.88);border:0.33px solid rgba(60,60,67,0.14);box-shadow:0 8px 32px rgba(0,0,0,0.12),0 0 0 0.5px rgba(255,255,255,0.8) inset;background-image:linear-gradient(to bottom,rgba(255,255,255,0.6) 0px,transparent 1px)}
+[data-theme="light"] .tab-item{color:rgba(60,60,67,0.45)}
+[data-theme="light"] .tab-item.active{color:var(--accent)}
+
+[data-theme="light"] .card{background:rgba(255,255,255,0.80);border:0.33px solid rgba(60,60,67,0.10);background-image:linear-gradient(to bottom,rgba(255,255,255,0.9) 0px,transparent 1px)}
+[data-theme="light"] .page-scroll{background:#F2F2F7}
+[data-theme="light"] #app{background:#F2F2F7}
+
+[data-theme="light"] .week-nav button{background:rgba(60,60,67,0.07);border-color:rgba(60,60,67,0.13);color:rgba(60,60,67,0.65)}
+[data-theme="light"] .xp-pill{background:rgba(255,214,10,0.12);border-color:rgba(200,160,0,0.3)}
+
+[data-theme="light"] .section-label{color:rgba(60,60,67,0.45)}
+[data-theme="light"] .hero-num{color:#000}
+[data-theme="light"] .hero-sub{color:rgba(60,60,67,0.5)}
+
+[data-theme="light"] .login-sheet{background:rgba(255,255,255,0.90);border:0.33px solid rgba(60,60,67,0.12)}
+[data-theme="light"] .login-logo{color:#000}
+[data-theme="light"] .login-tagline{color:rgba(60,60,67,0.5)}
+[data-theme="light"] .login-label{color:rgba(60,60,67,0.6)}
+[data-theme="light"] .login-input{background:rgba(60,60,67,0.06);border-color:rgba(60,60,67,0.14);color:#000}
+[data-theme="light"] .login-input::placeholder{color:rgba(60,60,67,0.3)}
+
+[data-theme="light"] .orb1{background:radial-gradient(circle,rgba(110,91,255,0.12),transparent 70%)}
+[data-theme="light"] .orb2{background:radial-gradient(circle,rgba(191,90,242,0.10),transparent 70%)}
+[data-theme="light"] .orb3{background:radial-gradient(circle,rgba(50,210,255,0.08),transparent 70%)}
+
+[data-theme="light"] .fab{box-shadow:0 4px 20px rgba(110,91,255,0.3)}
+[data-theme="light"] .cal-panel{background:rgba(255,255,255,0.92);border-color:rgba(60,60,67,0.10)}
+[data-theme="light"] .modal-sheet{background:rgba(255,255,255,0.92);border-color:rgba(60,60,67,0.10)}
+[data-theme="light"] .ctx-sheet{background:rgba(255,255,255,0.92);border-color:rgba(60,60,67,0.10)}
+[data-theme="light"] .ctx-row{border-bottom-color:rgba(60,60,67,0.08);color:#000}
+[data-theme="light"] .ctx-row:active{background:rgba(60,60,67,0.06)}
+[data-theme="light"] .ctx-row.danger{color:var(--red)}
+[data-theme="light"] .task-item{border-bottom-color:rgba(60,60,67,0.08)}
+[data-theme="light"] .task-text{color:#000}
+
+[data-theme="light"] .apikey-block{background:rgba(255,255,255,0.80);border-color:rgba(60,60,67,0.10);background-image:linear-gradient(to bottom,rgba(255,255,255,0.9) 0px,transparent 1px)}
+[data-theme="light"] .apikey-input{background:rgba(60,60,67,0.06);border-color:rgba(60,60,67,0.14);color:#000}
+[data-theme="light"] .fb-setup{background:rgba(255,255,255,0.80);border-color:rgba(60,60,67,0.10);background-image:linear-gradient(to bottom,rgba(255,255,255,0.9) 0px,transparent 1px)}
+[data-theme="light"] .fb-inp{background:rgba(60,60,67,0.06);border-color:rgba(60,60,67,0.14);color:#000}
+
+/* ── LIGHT: remaining dark elements ── */
+[data-theme="light"] .hero-stats{background:transparent}
+[data-theme="light"] .hero-stat{background:rgba(255,255,255,0.80);border:0.33px solid rgba(60,60,67,0.10);background-image:linear-gradient(to bottom,rgba(255,255,255,0.9) 0px,transparent 1px)}
+[data-theme="light"] .hero-stat-val{color:#000}
+[data-theme="light"] .card-top{background:rgba(255,255,255,0.80);border:0.33px solid rgba(60,60,67,0.10)}
+[data-theme="light"] .goal-row{border-bottom-color:rgba(60,60,67,0.08)}
+[data-theme="light"] .gcheck{border-color:rgba(60,60,67,0.22)}
+[data-theme="light"] .del-btn{color:rgba(60,60,67,0.3)}
+[data-theme="light"] .add-row{color:var(--accent)}
+[data-theme="light"] .bar-section{background:rgba(255,255,255,0.80);border:0.33px solid rgba(60,60,67,0.10)}
+[data-theme="light"] .bar-chart{background:transparent}
+[data-theme="light"] .bar-col{background:rgba(60,60,67,0.08)}
+[data-theme="light"] .bar-spacer{background:rgba(60,60,67,0.06)}
+[data-theme="light"] .day-strip{background:rgba(255,255,255,0.80);border:0.33px solid rgba(60,60,67,0.10)}
+[data-theme="light"] .day-chip{background:rgba(60,60,67,0.08)!important;color:rgba(60,60,67,0.7)!important}
+[data-theme="light"] .day-chip.active{background:var(--accent)!important;color:#fff!important}
+[data-theme="light"] .task-row,[data-theme="light"] .task-section{background:rgba(255,255,255,0.80);border:0.33px solid rgba(60,60,67,0.10)}
+[data-theme="light"] .tcheck{border-color:rgba(60,60,67,0.22)!important}
+[data-theme="light"] .sec-label{color:rgba(60,60,67,0.38)!important}
+[data-theme="light"] .hero-stat{background:rgba(255,255,255,0.85)!important}
+[data-theme="light"] .card-top{background:rgba(255,255,255,0.85)!important}
+
+/* Theme toggle button */
+.theme-btn{background:none;border:none;padding:6px;cursor:pointer;font-size:18px;line-height:1;opacity:0.7;transition:opacity 0.15s;display:flex;align-items:center;justify-content:center;border-radius:50%;width:34px;height:34px}
+.theme-btn:active{opacity:0.4}
+
+/* smooth theme transition */
+html{transition:background 0.3s ease}
+.topbar,.card,.page-scroll,.tabbar,.modal-sheet,.ctx-sheet,.login-sheet,.cal-panel,.apikey-block,.fb-setup{transition:background 0.3s ease,border-color 0.3s ease}
+
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
 </style>
 </head>
@@ -575,6 +676,7 @@ html,body{height:100%;width:100%;background:#000;color:var(--text);font-family:-
         <span class="xp-pill-lv" id="xpLv">1</span>
         <div class="xp-pill-bar"><div class="xp-pill-fill" id="xpBar" style="width:0%"></div></div>
       </div>
+      <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Сменить тему">🌙</button>
       <button class="cal-btn" id="calBtn" onclick="toggleCal()" title="Календарь">📅</button>
       <div class="sync-dot" id="syncDot" title="Синхронизация"></div>
       <button class="edit-btn" id="editBtn" onclick="toggleEdit()">Изменить</button>
@@ -1423,6 +1525,23 @@ function saveApiKey(){
 
 // ── SERVICE WORKER ──
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}
+
+// ── THEME ──
+function toggleTheme(){
+  const html=document.documentElement;
+  const isDark=html.getAttribute('data-theme')!=='light';
+  const next=isDark?'light':'dark';
+  html.setAttribute('data-theme',next);
+  document.getElementById('themeBtn').textContent=next==='light'?'☀️':'🌙';
+  svLocal('ol_theme',next);
+}
+function applyTheme(){
+  const t=ld('ol_theme','dark');
+  document.documentElement.setAttribute('data-theme',t);
+  const btn=document.getElementById('themeBtn');
+  if(btn)btn.textContent=t==='light'?'☀️':'🌙';
+}
+applyTheme();
 
 // ── INIT ──
 const _today=new Date().getDay();
