@@ -1396,7 +1396,7 @@ async function checkAccess(){
 // Codes are bound to username: HMAC-SHA256(secret, username) → OL-XXXXXX-YYYYYYYY
 // Brute-force is infeasible without the secret key
 const _OL_SECRET='ONE_LIFE_2025_7x9kQmRpWzNvBsYj';
-const _OL_BLOCKED=['planner_v2'];
+const _OL_BLOCKED=[];
 
 async function _hmacCode(username){
   const enc=new TextEncoder();
