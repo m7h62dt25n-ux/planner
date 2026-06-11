@@ -1,0 +1,16 @@
+{
+  "name": "ONE LIFE — Планер",
+  "short_name": "ONE LIFE",
+  "description": "Планер нового поколения с XP-системой и AI-коучем",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["productivity", "lifestyle"],
+  "lang": "ru"
+}

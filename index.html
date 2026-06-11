@@ -8,6 +8,7 @@
 <meta name="apple-mobile-web-app-title" content="ONE LIFE">
 <meta name="theme-color" content="#080808">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.json">
 <title>ONE LIFE</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@600;700;800&display=swap');
@@ -344,6 +345,17 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 .ws-val{font-weight:600;color:var(--text)}
 .ws-val.good{color:var(--green)}
 .ws-val.warn{color:var(--amber)}
+
+/* ── API KEY BLOCK ── */
+.apikey-block{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:14px}
+.apikey-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px}
+.apikey-row{display:flex;gap:8px}
+.apikey-input{flex:1;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);font-size:13px;font-family:'Inter',sans-serif;outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.apikey-input:focus{border-color:rgba(124,110,255,0.4)}
+.apikey-save{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--r);padding:10px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;transition:transform 0.15s}
+.apikey-save:active{transform:scale(0.96)}
+.apikey-hint{font-size:11px;color:var(--text3);margin-top:7px;line-height:1.5}
+.apikey-hint a{color:var(--accent);text-decoration:none}
 
 /* ── HIDDEN ── */
 .hidden{display:none!important}
@@ -844,13 +856,24 @@ async function renderCoach(){
     '<div class="er-row"><span>Настроение</span><span class="er-val">'+ei.mo+'/10</span></div><div class="er-track"><div class="er-fill" style="width:'+ei.mo*10+'%"></div></div>'+
     '<div style="margin-top:6px;font-size:12px;color:var(--text3)">Связь энергии и продуктивности: <b style="color:var(--accent)">'+corr+'%</b></div>'+
   '</div>'+
+  '<div class="apikey-block">'+
+    '<div class="apikey-label">Claude API Key (для AI-коуча)</div>'+
+    '<div class="apikey-row"><input class="apikey-input" id="apikeyInp" type="password" placeholder="sk-ant-api03-..." value="'+(ld('claude_key','')||'')+'"><button class="apikey-save" onclick="saveApiKey()">Сохранить</button></div>'+
+    '<div class="apikey-hint">Получи ключ на <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys. Хранится только в браузере.</div>'+
+  '</div>'+
   '<div class="sec-label">Резервная копия</div>'+
   '<div class="backup-row"><button class="backup-btn green" onclick="exportData()">💾 Сохранить</button><button class="backup-btn" onclick="importData()">📂 Восстановить</button></div>';
 
+  const apiKey=ld('claude_key','')||'';
+  if(!apiKey){
+    const el=document.getElementById('coachTxt');
+    if(el){el.textContent=localAdvice(s,ei);el.classList.remove('loading');}
+    return;
+  }
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':'','anthropic-version':'2023-06-01'},
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
       body:JSON.stringify({
         model:'claude-haiku-4-5-20251001',
         max_tokens:300,
@@ -933,6 +956,15 @@ document.addEventListener('keydown',e=>{
     else if(document.getElementById('loginScreen').style.display!=='none')doLogin();
   }
 });
+
+// ── API KEY ──
+function saveApiKey(){
+  const v=document.getElementById('apikeyInp')?.value.trim();
+  if(v!==undefined){sv('claude_key',v);showToast(v?'🔑 Ключ сохранён':'🗑️ Ключ удалён');if(v)renderCoach();}
+}
+
+// ── SERVICE WORKER ──
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}));}
 
 // ── INIT ──
 const _today=new Date().getDay();
