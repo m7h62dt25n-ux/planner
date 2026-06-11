@@ -7,6 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ONE LIFE">
 <meta name="theme-color" content="#080808">
+<!-- CSP: блокирует утечку данных на сторонние серверы даже при XSS -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data:; connect-src 'self' https://api.anthropic.com https://*.firebaseio.com https://firebaseinstallations.googleapis.com https://identitytoolkit.googleapis.com https://fonts.googleapis.com; img-src 'self' data: blob:; object-src 'none'; base-uri 'self';"
+>
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>ONE LIFE</title>
@@ -1408,10 +1411,24 @@ async function checkAccess(){
   if(saved&&saved.exp>Date.now()&&saved.u&&saved.k)return validateKey(saved.u,saved.k);
   return false;
 }
+
+// ── RATE LIMITER — max 5 попыток, потом 30 мин блокировка ──
+const _RL_MAX=5,_RL_LOCK=30*60*1000;
+function _rlCheck(){
+  const r=ld('_ol_r',{f:0,u:0});
+  if(r.u>Date.now()){const m=Math.ceil((r.u-Date.now())/60000);return{ok:false,msg:'Слишком много попыток. Подожди '+m+' мин.'};}
+  return{ok:true};
+}
+function _rlFail(){
+  const r=ld('_ol_r',{f:0,u:0});
+  r.f=(r.f||0)+1;
+  if(r.f>=_RL_MAX){r.u=Date.now()+_RL_LOCK;r.f=0;}
+  svLocal('_ol_r',r);
+}
+function _rlOk(){svLocal('_ol_r',{f:0,u:0});}
+
 // ── HMAC CODE VALIDATION ──
-// Codes are bound to username: HMAC-SHA256(secret, username) → OL-XXXXXX-YYYYYYYY
-// Brute-force is infeasible without the secret key
-// Secret split to avoid trivial grep/search extraction
+// Fallback когда Firebase не настроен. Secret split — не виден как строка в grep/devtools search.
 const _OL_SECRET=(()=>{const p=['ONE_','LIFE','_202','5_7x','9kQm','RpWz','NvBs','Yj'];return p.join('');})();
 const _OL_BLOCKED=[];
 
@@ -1423,16 +1440,31 @@ async function _hmacCode(username){
   return 'OL-'+hex.slice(0,6)+'-'+hex.slice(6,14);
 }
 
+// Firebase-валидация: если Firebase настроен — проверяет /codes/{sha256(user:code)}
+// Это основной уровень защиты — секрет в базе, не в коде
+async function _validateFirebase(username,code){
+  if(!fbDb)return null; // Firebase не настроен → null = «неизвестно»
+  try{
+    const enc=new TextEncoder();
+    const buf=await crypto.subtle.digest('SHA-256',enc.encode(username.toLowerCase()+':'+code));
+    const hash=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+    const snap=await fbDb.ref('codes/'+hash).get();
+    return snap.exists();
+  }catch{return null;}
+}
+
 async function validateKey(username,key){
   if(!username||username.length<2)return false;
   if(_OL_BLOCKED.includes(username.toLowerCase()))return false;
   if(!key||!key.startsWith('OL-'))return false;
   const parts=key.split('-');
   if(parts.length!==3||parts[1].length!==6||parts[2].length!==8)return false;
-  try{
-    const expected=await _hmacCode(username);
-    return key===expected;
-  }catch{return false;}
+  // 1. Firebase — авторитетный источник (секрет не в коде)
+  const fbResult=await _validateFirebase(username,key);
+  if(fbResult!==null)return fbResult;
+  // 2. HMAC fallback — если Firebase не настроен
+  try{const expected=await _hmacCode(username);return key===expected;}
+  catch{return false;}
 }
 
 function doLogin(){
@@ -1440,12 +1472,21 @@ function doLogin(){
   const c=document.getElementById('li_c').value.trim().toUpperCase();
   const err=document.getElementById('li_err');
   if(!u||!c){err.textContent='Заполните все поля';return;}
+  // Rate limit check
+  const rl=_rlCheck();
+  if(!rl.ok){err.textContent=rl.msg;return;}
   if(!/^OL-[A-Z0-9]{6}-[A-Z0-9]{8}$/.test(c)){err.textContent='Неверный формат. Пример: OL-ABC123-DEF45678';return;}
   const btn=document.querySelector('.login-btn');
   btn.disabled=true;btn.textContent='Проверка...';
   validateKey(u,c).then(ok=>{
     btn.disabled=false;btn.textContent='Войти';
-    if(!ok){err.textContent='Неверный код или имя пользователя';return;}
+    if(!ok){
+      _rlFail();
+      const rl2=_rlCheck();
+      err.textContent=rl2.ok?'Неверный код или имя пользователя':rl2.msg;
+      return;
+    }
+    _rlOk();
     svLocal('ol_access',{u,k:c,exp:Date.now()+365*24*60*60*1000});
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('app').style.display='flex';
