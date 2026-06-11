@@ -882,7 +882,7 @@ async function initFirebase(activationKey){
 
 function pushAllToCloud(){
   if(!fbDb||!fbUid)return;
-  const keys=['hb2','st','xp','achievements','claude_key'];
+  const keys=['hb2','st','xp','achievements']; // claude_key_enc не синхронизируем — зашифрован кодом конкретного устройства
   for(let i=-52;i<=52;i++){keys.push('wk_'+i);}
   const updates={};
   keys.forEach(k=>{
@@ -1340,13 +1340,13 @@ async function renderCoach(){
   fbSetupHtml()+
   '<div class="apikey-block">'+
     '<div class="apikey-label">Claude API Key (для AI-коуча)</div>'+
-    '<div class="apikey-row"><input class="apikey-input" id="apikeyInp" type="password" placeholder="sk-ant-api03-..." value="'+(ld('claude_key','')||'')+'"><button class="apikey-save" onclick="saveApiKey()">Сохранить</button></div>'+
+    '<div class="apikey-row"><input class="apikey-input" id="apikeyInp" type="password" placeholder="'+(ld('claude_key_enc',null)?'••••••••••••••••':' sk-ant-api03-...')+'" autocomplete="new-password"><button class="apikey-save" onclick="saveApiKey()">Сохранить</button></div>'+
     '<div class="apikey-hint">Получи ключ на <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys. Хранится только в браузере.</div>'+
   '</div>'+
   '<div class="sec-label">Резервная копия</div>'+
   '<div class="backup-row"><button class="backup-btn green" onclick="exportData()">💾 Сохранить</button><button class="backup-btn" onclick="importData()">📂 Восстановить</button></div>';
 
-  const apiKey=ld('claude_key','')||'';
+  const apiKey=await getApiKey();
   if(!apiKey){
     const el=document.getElementById('coachTxt');
     if(el){el.textContent=localAdvice(s,ei);el.classList.remove('loading');}
@@ -1403,6 +1403,41 @@ function render(){
   updXP();
   const renderers={week:renderWeek,habits:renderHabits,diary:renderDiary,storage:renderStorage,xp:renderXP,coach:renderCoach};
   (renderers[page]||renderWeek)();
+}
+
+// ── AES-GCM ШИФРОВАНИЕ API KEY ──
+// Ключ шифруется кодом активации через PBKDF2+AES-256-GCM.
+// В localStorage хранится только шифротекст — без кода активации бесполезен.
+async function _aesEncrypt(plaintext, password){
+  const enc=new TextEncoder();
+  const salt=crypto.getRandomValues(new Uint8Array(16));
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const km=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
+  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt']);
+  const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},k,enc.encode(plaintext));
+  return{s:Array.from(salt),i:Array.from(iv),c:Array.from(new Uint8Array(ct))};
+}
+async function _aesDecrypt(stored, password){
+  const enc=new TextEncoder();
+  const km=await crypto.subtle.importKey('raw',enc.encode(password),'PBKDF2',false,['deriveKey']);
+  const k=await crypto.subtle.deriveKey({name:'PBKDF2',salt:new Uint8Array(stored.s),iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['decrypt']);
+  const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(stored.i)},k,new Uint8Array(stored.c));
+  return new TextDecoder().decode(pt);
+}
+function _getActivationCode(){return ld('ol_access',null)?.k||null;}
+async function getApiKey(){
+  const stored=ld('claude_key_enc',null);
+  if(!stored)return'';
+  const code=_getActivationCode();
+  if(!code)return'';
+  try{return await _aesDecrypt(stored,code);}catch{return'';}
+}
+async function setApiKey(plaintext){
+  const code=_getActivationCode();
+  if(!code)return;
+  if(!plaintext){localStorage.removeItem('claude_key_enc');return;}
+  const enc=await _aesEncrypt(plaintext,code);
+  svLocal('claude_key_enc',enc);
 }
 
 // ── ACCESS ──
@@ -1668,7 +1703,11 @@ async function saveFbConfig(){
 // ── API KEY ──
 function saveApiKey(){
   const v=document.getElementById('apikeyInp')?.value.trim();
-  if(v!==undefined){sv('claude_key',v);showToast(v?'🔑 Ключ сохранён':'🗑️ Ключ удалён');if(v)renderCoach();}
+  if(v===undefined)return;
+  setApiKey(v).then(()=>{
+    showToast(v?'🔑 Ключ сохранён (зашифрован)':'🗑️ Ключ удалён');
+    if(v)renderCoach();
+  });
 }
 
 // ── SERVICE WORKER ──
@@ -1708,7 +1747,14 @@ window.addEventListener('load',()=>{
           document.getElementById('fab').style.display='flex';
           setTimeout(()=>{document.getElementById('app').classList.add('visible');},50);
           const acc=ld('ol_access',null);
-          if(acc?.k)initFirebase(acc.k);
+          if(acc?.k){
+            initFirebase(acc.k);
+            // Миграция: если есть старый plaintext ключ — зашифровываем и удаляем
+            const oldKey=localStorage.getItem('claude_key');
+            if(oldKey&&!ld('claude_key_enc',null)){
+              setApiKey(oldKey).then(()=>{localStorage.removeItem('claude_key');});
+            }
+          }
           updXP();render();
         }else{
           document.getElementById('loginScreen').style.display='flex';
