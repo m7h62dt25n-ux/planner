@@ -144,8 +144,9 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 .bar-section{padding:16px}
 .bar-chart{display:flex;gap:6px;align-items:flex-end;height:80px;margin-bottom:10px}
 .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px}
-.bar-track{width:100%;flex:1;background:var(--bg4);border-radius:6px 6px 0 0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}
-.bar-fill{width:100%;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:6px 6px 0 0;transition:height 0.6s cubic-bezier(.4,0,.2,1);min-height:0}
+.bar-track{width:100%;flex:1;background:var(--bg4);border-radius:6px 6px 0 0;overflow:hidden;display:flex;flex-direction:column}
+.bar-spacer{width:100%;min-height:0;transition:flex 0.7s cubic-bezier(.4,0,.2,1)}
+.bar-fill{width:100%;min-height:0;background:linear-gradient(180deg,var(--accent),var(--accent2));border-radius:6px 6px 0 0;transition:flex 0.7s cubic-bezier(.4,0,.2,1)}
 .bar-fill.today-bar{background:linear-gradient(180deg,var(--purple),var(--accent))}
 .bar-lbl{font-size:9px;color:var(--text3);font-weight:500}
 
@@ -623,7 +624,7 @@ async function initFirebase(activationKey){
 function pushAllToCloud(){
   if(!fbDb||!fbUid)return;
   const keys=['hb2','st','xp','achievements','claude_key'];
-  for(let i=-52;i<=0;i++){keys.push('wk_'+i);}
+  for(let i=-52;i<=52;i++){keys.push('wk_'+i);}
   const updates={};
   keys.forEach(k=>{
     const v=localStorage.getItem(k);
@@ -648,7 +649,9 @@ function wk(off){return ld('wk_'+off,mkWeek());}
 function swk(off,w){sv('wk_'+off,w);}
 function wDates(off){const d=new Date();d.setDate(d.getDate()-(d.getDay()||7)+1+off*7);return Array(7).fill(0).map((_,i)=>{const x=new Date(d);x.setDate(d.getDate()+i);return x;});}
 function fmt(d){return d.getDate()+'.'+(d.getMonth()+1);}
-function isToday(d){const t=new Date();return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth();}
+function isToday(d){const t=new Date();return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear();}
+// key for habit storage — includes year to prevent cross-year collision
+function fmtKey(d){return d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();}
 
 // ── HABITS ──
 function hb(){return ld('hb2',{list:['Спорт','Чтение','Медитация'],days:{}});}
@@ -727,12 +730,20 @@ function getEI(){
 function toggleGoal(i){const w=wk(wOff);w.goalsD[i]=!w.goalsD[i];if(w.goalsD[i])addXP(20,'Цель недели');swk(wOff,w);render();confettiIfDone(w.goalsD);}
 function setGoal(i,v){const w=wk(wOff);w.goals[i]=v;swk(wOff,w);}
 function addGoal(){const w=wk(wOff);if(w.goals.length<8)w.goals.push(''),w.goalsD.push(false);swk(wOff,w);render();}
-function toggleTask(di,ti){const w=wk(wOff);w.tasksD[di][ti]=!w.tasksD[di][ti];if(w.tasksD[di][ti])addXP(10,'Задача выполнена');swk(wOff,w);render();}
+function toggleTask(di,ti){
+  const w=wk(wOff);
+  if(!Array.isArray(w.tasksD[di]))w.tasksD[di]=[];
+  const wasOn=!!w.tasksD[di][ti];
+  w.tasksD[di][ti]=!wasOn;
+  if(!wasOn)addXP(10,'Задача выполнена');
+  swk(wOff,w);render();
+}
 function toggleHabit(hi,di){
-  const h=hb(),dates=wDates(wOff),key=fmt(dates[di]);
+  const h=hb(),dates=wDates(wOff),key=fmtKey(dates[di]);
   if(!h.days[key])h.days[key]=[];
-  h.days[key][hi]=!h.days[key][hi];
-  if(h.days[key][hi])addXP(15,'Привычка отмечена');
+  const wasOn=!!h.days[key][hi];
+  h.days[key][hi]=!wasOn;
+  if(!wasOn)addXP(15,'Привычка отмечена');
   shb(h);render();
 }
 function adjMood(di,k,d){const w=wk(wOff);if(!w.mood[di])w.mood[di]={sleep:7,energy:7,mood:7,lesson:'',gratitude:''};w.mood[di][k]=Math.max(1,Math.min(10,(w.mood[di][k]||7)+d));swk(wOff,w);render();}
@@ -770,7 +781,7 @@ function showCtx(type,data){
   const m=document.createElement('div');m.id='ctxMenu';m.className='ctx-menu';
   m.style.cssText='bottom:calc(var(--tab-h) + var(--safe-bot) + 60px);right:18px';
   const items=[];
-  if(type==='task')items.push(['⏱️ Фокус 25 мин','startFocus(ctxData.text);closeCtx()'],['🗑️ Удалить','deleteCtx()',true]);
+  if(type==='task')items.push(['⏱️ Фокус 25 мин','startFocusByIdx(ctxData.di,ctxData.ti);closeCtx()'],['🗑️ Удалить','deleteCtx()',true]);
   else items.push(['✏️ Изменить','editCtx()'],['🗑️ Удалить','deleteCtx()',true]);
   m.innerHTML=items.map(([label,fn,red])=>'<div class="ctx-item '+(red?'red':'')+'" onclick="'+fn+'">'+label+'</div>').join('');
   const bg=document.createElement('div');bg.style.cssText='position:fixed;inset:0;z-index:199';bg.onclick=closeCtx;bg.id='ctxBg';
@@ -796,6 +807,12 @@ function editCtx(){
   else if(type==='habit'){const h=hb();h.list[ctxData.hi]=inp;shb(h);}
   else if(type==='stor'){const s=st();s[ctxData.si].text=inp;sst(s);}
   closeCtx();render();
+}
+
+// safe wrapper — looks up task by index, no user text in onclick attrs
+function startFocusByIdx(di,ti){
+  const t=((wk(wOff).tasks||[])[di]||[])[ti]||'';
+  startFocus(t);
 }
 
 // ── FOCUS TIMER ──
@@ -859,7 +876,13 @@ function confetti(){
 // ── WEEK SHIFT ──
 function shiftWeek(d){
   wOff+=d;
-  if(wOff===0)selDay=(new Date().getDay()||7)-1;
+  if(wOff===0){
+    selDay=(new Date().getDay()||7)-1;
+  } else {
+    // clamp selDay to valid 0-6 range (already fine, but ensure it's set)
+    if(selDay<0)selDay=0;
+    if(selDay>6)selDay=6;
+  }
   render();
 }
 
@@ -921,12 +944,12 @@ function renderWeek(){
   '</div>'+
   '<div class="card" style="margin-bottom:12px">'+
     '<div class="card-top"><div class="card-title">Прогресс по дням</div></div>'+
-    '<div class="bar-section" style="padding-top:0"><div class="bar-chart">'+DAYS.map((_,di)=>'<div class="bar-col"><div class="bar-track"><div class="bar-fill '+(di===todayIdx?'today-bar':'')+'" style="height:'+bars[di]+'%"></div></div><div class="bar-lbl">'+DAYS[di]+'</div></div>').join('')+'</div></div>'+
+    '<div class="bar-section" style="padding-top:0"><div class="bar-chart">'+DAYS.map((_,di)=>'<div class="bar-col"><div class="bar-track"><div class="bar-spacer" style="flex:'+(100-bars[di])+'"></div><div class="bar-fill '+(di===todayIdx?'today-bar':'')+'" style="flex:'+bars[di]+'"></div></div><div class="bar-lbl">'+DAYS[di]+'</div></div>').join('')+'</div></div>'+
   '</div>'+
   '<div class="day-strip">'+dates.map((d,di)=>'<div class="day-chip '+(di===selDay?'active':'')+' '+(isToday(d)?'today':'')+'" onclick="selD('+di+')"><div class="dn">'+DAYS[di]+'</div><div class="dd">'+fmt(d)+'</div></div>').join('')+'</div>'+
   '<div class="card '+eml+'">'+
     '<div class="card-top"><div class="card-title">'+DAYS[selDay]+' — задачи</div><div class="card-badge">'+dt.filter((t,ti)=>t&&w.tasksD[selDay][ti]).length+'/'+dt.filter(t=>t).length+'</div></div>'+
-    dt.map((t,ti)=>'<div class="task-row"><div class="tcheck '+(w.tasksD[selDay][ti]&&t?'done':'')+'" onclick="toggleTask('+selDay+','+ti+')">✓</div><div class="task-text '+(w.tasksD[selDay][ti]&&t?'done':'')+'">'+esc(t)+'</div><div class="task-actions">'+(t?'<div class="focus-btn" onclick="startFocus(\''+esc(t)+'\')">⏱</div>':'')+(em?'<button class="del-btn" style="opacity:1" onclick="showCtx(\'task\',{di:'+selDay+',ti:'+ti+',text:\''+esc(t)+'\'})" >⋯</button>':'')+'</div></div>').join('')+
+    dt.map((t,ti)=>{const isDone=!!(w.tasksD[selDay]||[])[ti]&&!!t;return'<div class="task-row"><div class="tcheck '+(isDone?'done':'')+'" onclick="toggleTask('+selDay+','+ti+')">✓</div><div class="task-text '+(isDone?'done':'')+'">'+esc(t)+'</div><div class="task-actions">'+(t?'<div class="focus-btn" onclick="startFocusByIdx('+selDay+','+ti+')">⏱</div>':'')+(em?'<button class="del-btn" style="opacity:1" onclick="showCtx(\'task\',{di:'+selDay+',ti:'+ti+'})">⋯</button>':'')+'</div></div>';}).join('')+
     '<div class="add-row" onclick="openAdd()"><div class="add-circle">+</div><span>Добавить задачу</span></div>'+
   '</div>';
 }
@@ -934,7 +957,7 @@ function renderWeek(){
 function renderHabits(){
   const h=hb(),dates=wDates(wOff);
   document.getElementById('ps').innerHTML=h.list.map((name,hi)=>{
-    const days=dates.map(d=>(h.days[fmt(d)]||[])[hi]||false);
+    const days=dates.map(d=>(h.days[fmtKey(d)]||(h.days[fmt(d)]||[]))[hi]||false); // fmtKey primary, fmt fallback for old data
     const pct=Math.round(days.filter(Boolean).length/7*100);
     const streak=days.reduceRight((s,v)=>v?s+1:0,0);
     return '<div class="habit-card '+(em?'edit-mode':'')+'">'+
