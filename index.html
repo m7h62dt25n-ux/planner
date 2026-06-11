@@ -360,6 +360,64 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 .apikey-hint{font-size:11px;color:var(--text3);margin-top:7px;line-height:1.5}
 .apikey-hint a{color:var(--accent);text-decoration:none}
 
+/* ── CALENDAR BUTTON ── */
+.cal-btn{background:var(--glass2);border:0.5px solid var(--border2);border-radius:10px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;backdrop-filter:blur(8px);transition:all 0.18s;flex-shrink:0;position:relative}
+.cal-btn:active{transform:scale(0.88)}
+.cal-btn.open{background:rgba(124,110,255,0.18);border-color:rgba(124,110,255,0.4)}
+
+/* ── CALENDAR PANEL ── */
+.cal-panel{position:fixed;top:calc(var(--safe-top) + 62px);right:12px;width:310px;background:rgba(14,14,14,0.97);backdrop-filter:blur(36px);-webkit-backdrop-filter:blur(36px);border:0.5px solid var(--border2);border-radius:var(--r-xl);z-index:500;overflow:hidden;transform-origin:top right;transition:transform 0.3s cubic-bezier(.34,1.56,.64,1),opacity 0.25s ease}
+.cal-panel.hidden{transform:scale(0.85) translateY(-8px);opacity:0;pointer-events:none}
+.cal-panel.visible{transform:scale(1) translateY(0);opacity:1}
+
+/* ── CALENDAR HEADER ── */
+.cal-header{display:flex;align-items:center;padding:14px 14px 10px;gap:4px}
+.cal-nav{background:var(--glass2);border:0.5px solid var(--border2);border-radius:9px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;color:var(--text2);flex-shrink:0;transition:all 0.15s;backdrop-filter:blur(8px)}
+.cal-nav:active{transform:scale(0.88)}
+.cal-nav:disabled{opacity:0.25;cursor:default}
+.cal-title{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer}
+.cal-month-name{font-family:'Manrope',sans-serif;font-size:15px;font-weight:700;color:var(--text);letter-spacing:0.2px;line-height:1}
+.cal-year-name{font-size:11px;font-weight:600;color:var(--accent)}
+.cal-title:active .cal-month-name,.cal-title:active .cal-year-name{opacity:0.7}
+
+/* ── DAY NAMES ROW ── */
+.cal-daynames{display:grid;grid-template-columns:repeat(7,1fr);padding:0 10px 6px;gap:2px}
+.cal-dn{text-align:center;font-size:9px;font-weight:700;color:var(--text3);letter-spacing:0.4px;padding:3px 0}
+.cal-dn.weekend{color:rgba(248,113,113,0.5)}
+
+/* ── DAYS GRID ── */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:0 10px 12px;gap:3px}
+.cal-cell{aspect-ratio:1;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;cursor:pointer;color:var(--text2);transition:all 0.18s;position:relative}
+.cal-cell:active{transform:scale(0.88)}
+.cal-cell.other-month{color:var(--text3);opacity:0.4}
+.cal-cell.today{color:var(--accent);font-weight:700}
+.cal-cell.today::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal-cell.in-sel-week{background:rgba(124,110,255,0.1);color:var(--text)}
+.cal-cell.sel-day{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;box-shadow:0 2px 10px var(--glow)}
+.cal-cell.sel-day::after{display:none}
+.cal-cell:not(.sel-day):not(.in-sel-week):hover{background:var(--glass2)}
+.cal-cell.future{opacity:0.2;cursor:default;pointer-events:none}
+
+/* ── YEAR PICKER ── */
+.year-picker{padding:8px 10px 14px;border-top:0.5px solid var(--border)}
+.year-picker-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;text-align:center;margin-bottom:10px}
+.year-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.year-cell{padding:9px 4px;border-radius:10px;text-align:center;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;transition:all 0.15s;border:0.5px solid transparent}
+.year-cell:active{transform:scale(0.93)}
+.year-cell.cur-year{color:var(--accent);font-weight:700;border-color:rgba(124,110,255,0.3);background:rgba(124,110,255,0.08)}
+.year-cell.sel-year{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700}
+.year-cell:not(.sel-year):hover{background:var(--glass2)}
+.year-cell.future-year{opacity:0.2;cursor:default;pointer-events:none}
+
+/* ── MONTH PICKER ── */
+.month-picker{padding:8px 10px 14px;border-top:0.5px solid var(--border)}
+.month-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.month-cell{padding:10px 4px;border-radius:10px;text-align:center;font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;transition:all 0.15s;border:0.5px solid transparent}
+.month-cell:active{transform:scale(0.93)}
+.month-cell.cur-month{color:var(--accent);border-color:rgba(124,110,255,0.3);background:rgba(124,110,255,0.08)}
+.month-cell.sel-month{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700}
+.month-cell.future-month{opacity:0.2;cursor:default;pointer-events:none}
+
 /* ── SYNC DOT ── */
 .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);transition:background 0.4s,box-shadow 0.4s;flex-shrink:0}
 .sync-dot.syncing{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:pulse 1s ease-in-out infinite}
@@ -427,10 +485,31 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
         <span class="xp-pill-lv" id="xpLv">1</span>
         <div class="xp-pill-bar"><div class="xp-pill-fill" id="xpBar" style="width:0%"></div></div>
       </div>
+      <button class="cal-btn" id="calBtn" onclick="toggleCal()" title="Календарь">📅</button>
       <div class="sync-dot" id="syncDot" title="Синхронизация"></div>
       <button class="edit-btn" id="editBtn" onclick="toggleEdit()">Изменить</button>
     </div>
   </div>
+
+  <!-- CALENDAR PANEL -->
+  <div class="cal-panel hidden" id="calPanel">
+    <div class="cal-header">
+      <button class="cal-nav" id="calPrev" onclick="calShiftMonth(-1)">&#8249;</button>
+      <div class="cal-title" onclick="toggleCalPicker()">
+        <div class="cal-month-name" id="calMonthName">Январь</div>
+        <div class="cal-year-name" id="calYearName">2026</div>
+      </div>
+      <button class="cal-nav" id="calNext" onclick="calShiftMonth(1)">&#8250;</button>
+    </div>
+    <div class="cal-daynames">
+      <div class="cal-dn">ПН</div><div class="cal-dn">ВТ</div><div class="cal-dn">СР</div>
+      <div class="cal-dn">ЧТ</div><div class="cal-dn">ПТ</div>
+      <div class="cal-dn weekend">СБ</div><div class="cal-dn weekend">ВС</div>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div id="calPicker" class="hidden"></div>
+  </div>
+  <div id="calBg" style="display:none;position:fixed;inset:0;z-index:499" onclick="closeCal()"></div>
 
   <!-- SCROLL -->
   <div class="page-scroll" id="ps"></div>
@@ -1062,6 +1141,141 @@ document.addEventListener('keydown',e=>{
     else if(document.getElementById('loginScreen').style.display!=='none')doLogin();
   }
 });
+
+// ── CALENDAR ──
+const MONTHS_RU=['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MONTHS_SHORT=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+
+let calOpen=false, calPickerMode=null; // null | 'year' | 'month'
+const _now=new Date();
+let calYear=_now.getFullYear(), calMonth=_now.getMonth(); // 0-indexed
+
+function toggleCal(){calOpen?closeCal():openCal();}
+
+function openCal(){
+  calOpen=true;
+  // sync calendar view to currently selected week
+  const dates=wDates(wOff);
+  const mid=dates[selDay]||dates[0];
+  calYear=mid.getFullYear();calMonth=mid.getMonth();
+  document.getElementById('calPanel').className='cal-panel visible';
+  document.getElementById('calBg').style.display='block';
+  document.getElementById('calBtn').classList.add('open');
+  calPickerMode=null;
+  document.getElementById('calPicker').className='hidden';
+  renderCalGrid();
+}
+
+function closeCal(){
+  calOpen=false;
+  document.getElementById('calPanel').className='cal-panel hidden';
+  document.getElementById('calBg').style.display='none';
+  document.getElementById('calBtn').classList.remove('open');
+  calPickerMode=null;
+}
+
+function calShiftMonth(d){
+  calMonth+=d;
+  if(calMonth>11){calMonth=0;calYear++;}
+  if(calMonth<0){calMonth=11;calYear--;}
+  calPickerMode=null;
+  document.getElementById('calPicker').className='hidden';
+  renderCalGrid();
+}
+
+function toggleCalPicker(){
+  if(calPickerMode==='year'){calPickerMode='month';renderCalPicker();}
+  else if(calPickerMode==='month'){calPickerMode=null;document.getElementById('calPicker').className='hidden';}
+  else{calPickerMode='year';renderCalPicker();}
+}
+
+function renderCalPicker(){
+  const el=document.getElementById('calPicker');
+  el.className='';
+  if(calPickerMode==='year'){
+    const curY=_now.getFullYear();
+    const years=[];for(let y=curY;y>=curY-15;y--)years.push(y);
+    el.innerHTML='<div class="year-picker"><div class="year-picker-title">Выбери год</div><div class="year-grid">'+
+      years.map(y=>'<div class="year-cell'+(y===curY?' cur-year':'')+(y===calYear?' sel-year':'')+'" onclick="selCalYear('+y+')">'+y+'</div>').join('')+
+    '</div></div>';
+  }else if(calPickerMode==='month'){
+    const curY=_now.getFullYear(),curM=_now.getMonth();
+    el.innerHTML='<div class="month-picker"><div class="year-picker-title">'+calYear+'</div><div class="month-grid">'+
+      MONTHS_SHORT.map((m,i)=>{
+        const isFuture=calYear===curY&&i>curM;
+        return '<div class="month-cell'+(calYear===curY&&i===curM?' cur-month':'')+(i===calMonth&&!isFuture?' sel-month':'')+(isFuture?' future-month':'')+'" onclick="selCalMonth('+i+')">'+m+'</div>';
+      }).join('')+
+    '</div></div>';
+  }
+}
+
+function selCalYear(y){calYear=y;calPickerMode='month';renderCalPicker();}
+function selCalMonth(m){calMonth=m;calPickerMode=null;document.getElementById('calPicker').className='hidden';renderCalGrid();}
+
+function renderCalGrid(){
+  const curY=_now.getFullYear(),curM=_now.getMonth(),curD=_now.getDate();
+  document.getElementById('calMonthName').textContent=MONTHS_RU[calMonth];
+  document.getElementById('calYearName').textContent=calYear;
+  document.getElementById('calPrev').disabled=calYear<2020;
+  document.getElementById('calNext').disabled=calYear>curY||(calYear===curY&&calMonth>=curM);
+
+  // Get selected week's Monday and Sunday
+  const selDates=wDates(wOff);
+  const selMon=selDates[0],selSun=selDates[6];
+
+  // First day of the month (0=Sun…6=Sat → convert to Mon-first: 0=Mon…6=Sun)
+  const firstDay=new Date(calYear,calMonth,1);
+  let startDow=firstDay.getDay();// 0=Sun
+  startDow=startDow===0?6:startDow-1;// Mon=0
+
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const daysInPrev=new Date(calYear,calMonth,0).getDate();
+  const totalCells=Math.ceil((startDow+daysInMonth)/7)*7;
+
+  let html='';
+  for(let i=0;i<totalCells;i++){
+    let day,month,year,otherMonth=false;
+    if(i<startDow){day=daysInPrev-startDow+i+1;month=calMonth-1;year=calYear;otherMonth=true;}
+    else if(i>=startDow+daysInMonth){day=i-startDow-daysInMonth+1;month=calMonth+1;year=calYear;otherMonth=true;}
+    else{day=i-startDow+1;month=calMonth;year=calYear;}
+    if(month<0){month=11;year--;}
+    if(month>11){month=0;year++;}
+
+    const cellDate=new Date(year,month,day);
+    cellDate.setHours(0,0,0,0);
+    const today=new Date();today.setHours(0,0,0,0);
+
+    const isToday=cellDate.getTime()===today.getTime();
+    const isFuture=cellDate>today;
+    const mon=new Date(cellDate);mon.setDate(cellDate.getDate()-((cellDate.getDay()||7)-1));
+    const isInSelWeek=mon.getTime()===selMon.getTime()&&!otherMonth;
+    const isSelDay=!otherMonth&&year===selDates[selDay].getFullYear()&&month===selDates[selDay].getMonth()&&day===selDates[selDay].getDate();
+
+    const cls=['cal-cell',otherMonth?'other-month':'',isToday?'today':'',isInSelWeek&&!isSelDay?'in-sel-week':'',isSelDay?'sel-day':'',isFuture?'future':''].filter(Boolean).join(' ');
+    const onclick=isFuture||otherMonth?'':'onclick="calSelectDay('+year+','+(month)+','+day+')"';
+    html+='<div class="'+cls+'" '+onclick+'>'+day+'</div>';
+  }
+  document.getElementById('calGrid').innerHTML=html;
+}
+
+function calSelectDay(year,month,day){
+  const target=new Date(year,month,day);
+  target.setHours(0,0,0,0);
+  // Compute wOff: difference in weeks from current week's Monday
+  const today=new Date();
+  const curMon=new Date(today);
+  curMon.setDate(today.getDate()-((today.getDay()||7)-1));
+  curMon.setHours(0,0,0,0);
+  const targetMon=new Date(target);
+  targetMon.setDate(target.getDate()-((target.getDay()||7)-1));
+  targetMon.setHours(0,0,0,0);
+  const newWOff=Math.round((targetMon-curMon)/(7*24*60*60*1000));
+  if(newWOff>0)return; // no future
+  wOff=newWOff;
+  selDay=(target.getDay()||7)-1; // 0=Mon…6=Sun
+  closeCal();
+  go(page);
+}
 
 // ── FIREBASE SETUP UI ──
 function fbSetupHtml(){
