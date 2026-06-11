@@ -858,8 +858,9 @@ function confetti(){
 
 // ── WEEK SHIFT ──
 function shiftWeek(d){
-  if(wOff+d>0)return;
-  wOff+=d;selDay=wOff===0?(new Date().getDay()||7)-1:0;render();
+  wOff+=d;
+  if(wOff===0)selDay=(new Date().getDay()||7)-1;
+  render();
 }
 
 // ── TOGGLE EDIT ──
@@ -1194,17 +1195,13 @@ function renderCalPicker(){
   el.className='';
   if(calPickerMode==='year'){
     const curY=_now.getFullYear();
-    const years=[];for(let y=curY;y>=curY-15;y--)years.push(y);
+    const years=[];for(let y=curY+3;y>=curY-12;y--)years.push(y);
     el.innerHTML='<div class="year-picker"><div class="year-picker-title">Выбери год</div><div class="year-grid">'+
       years.map(y=>'<div class="year-cell'+(y===curY?' cur-year':'')+(y===calYear?' sel-year':'')+'" onclick="selCalYear('+y+')">'+y+'</div>').join('')+
     '</div></div>';
   }else if(calPickerMode==='month'){
-    const curY=_now.getFullYear(),curM=_now.getMonth();
     el.innerHTML='<div class="month-picker"><div class="year-picker-title">'+calYear+'</div><div class="month-grid">'+
-      MONTHS_SHORT.map((m,i)=>{
-        const isFuture=calYear===curY&&i>curM;
-        return '<div class="month-cell'+(calYear===curY&&i===curM?' cur-month':'')+(i===calMonth&&!isFuture?' sel-month':'')+(isFuture?' future-month':'')+'" onclick="selCalMonth('+i+')">'+m+'</div>';
-      }).join('')+
+      MONTHS_SHORT.map((m,i)=>'<div class="month-cell'+(_now.getFullYear()===calYear&&i===_now.getMonth()?' cur-month':'')+(i===calMonth?' sel-month':'')+'" onclick="selCalMonth('+i+')">'+m+'</div>').join('')+
     '</div></div>';
   }
 }
@@ -1217,7 +1214,6 @@ function renderCalGrid(){
   document.getElementById('calMonthName').textContent=MONTHS_RU[calMonth];
   document.getElementById('calYearName').textContent=calYear;
   document.getElementById('calPrev').disabled=calYear<2020;
-  document.getElementById('calNext').disabled=calYear>curY||(calYear===curY&&calMonth>=curM);
 
   // Get selected week's Monday and Sunday
   const selDates=wDates(wOff);
@@ -1251,8 +1247,8 @@ function renderCalGrid(){
     const isInSelWeek=mon.getTime()===selMon.getTime()&&!otherMonth;
     const isSelDay=!otherMonth&&year===selDates[selDay].getFullYear()&&month===selDates[selDay].getMonth()&&day===selDates[selDay].getDate();
 
-    const cls=['cal-cell',otherMonth?'other-month':'',isToday?'today':'',isInSelWeek&&!isSelDay?'in-sel-week':'',isSelDay?'sel-day':'',isFuture?'future':''].filter(Boolean).join(' ');
-    const onclick=isFuture||otherMonth?'':'onclick="calSelectDay('+year+','+(month)+','+day+')"';
+    const cls=['cal-cell',otherMonth?'other-month':'',isToday?'today':'',isInSelWeek&&!isSelDay?'in-sel-week':'',isSelDay?'sel-day':''].filter(Boolean).join(' ');
+    const onclick=otherMonth?'':'onclick="calSelectDay('+year+','+(month)+','+day+')"';
     html+='<div class="'+cls+'" '+onclick+'>'+day+'</div>';
   }
   document.getElementById('calGrid').innerHTML=html;
@@ -1270,7 +1266,6 @@ function calSelectDay(year,month,day){
   targetMon.setDate(target.getDate()-((target.getDay()||7)-1));
   targetMon.setHours(0,0,0,0);
   const newWOff=Math.round((targetMon-curMon)/(7*24*60*60*1000));
-  if(newWOff>0)return; // no future
   wOff=newWOff;
   selDay=(target.getDay()||7)-1; // 0=Mon…6=Sun
   closeCal();
