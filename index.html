@@ -1076,8 +1076,9 @@ function startFocus(taskName){
   focusLeft=focusTotal=25*60;focusRunning=false;
   clearInterval(focusInterval);
   const mod=document.createElement('div');mod.className='focus-modal';mod.id='focusModal';
-  mod.innerHTML='<div class="focus-modal-bg" onclick="stopFocus()"></div><div class="focus-modal-sheet"><div class="focus-task-name">'+taskName+'</div><div class="focus-timer" id="focusClock">25:00</div><div class="focus-progress"><div class="focus-prog-fill" id="focusProg" style="width:100%"></div></div><div class="focus-btns"><button class="focus-btn-big primary" id="focusToggle" onclick="toggleFocus()">&#9654; Старт</button><button class="focus-btn-big danger" onclick="stopFocus()">Отмена</button></div></div>';
+  mod.innerHTML='<div class="focus-modal-bg" onclick="stopFocus()"></div><div class="focus-modal-sheet"><div class="focus-task-name" id="focusTaskName"></div><div class="focus-timer" id="focusClock">25:00</div><div class="focus-progress"><div class="focus-prog-fill" id="focusProg" style="width:100%"></div></div><div class="focus-btns"><button class="focus-btn-big primary" id="focusToggle" onclick="toggleFocus()">&#9654; Старт</button><button class="focus-btn-big danger" onclick="stopFocus()">Отмена</button></div></div>';
   document.body.appendChild(mod);
+  document.getElementById('focusTaskName').textContent=taskName;
 }
 function toggleFocus(){
   focusRunning=!focusRunning;
@@ -1170,16 +1171,30 @@ function importData(){
     r.onload=ev=>{
       try{
         const d=JSON.parse(ev.target.result);
-        if(d.weeks)Object.entries(d.weeks).forEach(([k,v])=>sv(k,v));
-        ['hb2','st','xp','achievements'].forEach(k=>{if(d[k])sv(k,d[k]);});
+        if(typeof d!=='object'||d===null||Array.isArray(d))throw new Error('bad');
+        // Белый список — только данные пользователя, не авторизационные ключи
+        const SAFE_KEYS=['hb2','st','xp','achievements'];
+        const WK_RE=/^wk_-?\d+$/;
+        if(d.weeks&&typeof d.weeks==='object'){
+          Object.entries(d.weeks).forEach(([k,v])=>{if(WK_RE.test(k))sv(k,v);});
+        }
+        SAFE_KEYS.forEach(k=>{if(d[k]!==undefined)sv(k,d[k]);});
         showToast('✅ Восстановлено');setTimeout(()=>render(),400);
-      }catch{alert('Ошибка файла');}
+      }catch{showToast('⚠️ Ошибка файла');}
     };r.readAsText(f);
   };inp.click();
 }
 
 // ── RENDERS ──
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+
+// ── CLICK REGISTRY — безопасная замена onclick с пользовательскими данными ──
+// esc() в onclick-атрибутах небезопасен: браузер декодирует &#39; → ' до JS,
+// что позволяет выйти из строки. Храним данные в реестре, в onclick только числовой ключ.
+const _CR={};let _CRi=0;
+function _crSet(data){const k=_CRi++;_CR[k]=data;return k;}
+function _crGet(k){return _CR[k];}
+function _crClear(){const keys=Object.keys(_CR);if(keys.length>500)keys.slice(0,250).forEach(k=>delete _CR[k]);}
 
 function renderWeek(){
   const w=wk(wOff),dates=wDates(wOff),s=calcStats(wOff);
@@ -1195,7 +1210,7 @@ function renderWeek(){
   '</div>'+
   '<div class="card '+eml+'" style="margin-bottom:12px">'+
     '<div class="card-top"><div class="card-title">Цели недели</div><div class="card-badge">'+s.gd+'/'+s.gt+'</div></div>'+
-    w.goals.map((g,i)=>'<div class="goal-row"><div class="gcheck '+(w.goalsD[i]?'done':'')+'" onclick="toggleGoal('+i+')">✓</div><input class="ginput '+(w.goalsD[i]&&g?'done':'')+'" value="'+esc(g||'')+'" placeholder="Цель '+(i+1)+'..." onchange="setGoal('+i+',this.value)"><button class="del-btn" onclick="showCtx(\'goal\',{ci:'+i+',text:\''+esc(g||'')+'\'})" >×</button></div>').join('')+
+    w.goals.map((g,i)=>{const k=_crSet({type:'goal',ci:i,text:g||''});return'<div class="goal-row"><div class="gcheck '+(w.goalsD[i]?'done':'')+'" onclick="toggleGoal('+i+')">✓</div><input class="ginput '+(w.goalsD[i]&&g?'done':'')+'" value="'+esc(g||'')+'" placeholder="Цель '+(i+1)+'..." onchange="setGoal('+i+',this.value)"><button class="del-btn" onclick="showCtx(_crGet('+k+').type,_crGet('+k+'))">×</button></div>';}).join('')+
     '<div class="add-row" onclick="addGoal()"><div class="add-circle">+</div><span>Добавить цель</span></div>'+
   '</div>'+
   '<div class="card" style="margin-bottom:12px">'+
@@ -1205,7 +1220,7 @@ function renderWeek(){
   '<div class="day-strip">'+dates.map((d,di)=>'<div class="day-chip '+(di===selDay?'active':'')+' '+(isToday(d)?'today':'')+'" onclick="selD('+di+')"><div class="dn">'+DAYS[di]+'</div><div class="dd">'+fmt(d)+'</div></div>').join('')+'</div>'+
   '<div class="card '+eml+'">'+
     '<div class="card-top"><div class="card-title">'+DAYS[selDay]+' — задачи</div><div class="card-badge">'+dt.filter((t,ti)=>t&&w.tasksD[selDay][ti]).length+'/'+dt.filter(t=>t).length+'</div></div>'+
-    dt.map((t,ti)=>{const isDone=!!(w.tasksD[selDay]||[])[ti]&&!!t;return'<div class="task-row"><div class="tcheck '+(isDone?'done':'')+'" onclick="toggleTask('+selDay+','+ti+')">✓</div><div class="task-text '+(isDone?'done':'')+'">'+esc(t)+'</div><div class="task-actions">'+(t?'<div class="focus-btn" onclick="startFocusByIdx('+selDay+','+ti+')">⏱</div>':'')+(em?'<button class="del-btn" style="opacity:1" onclick="showCtx(\'task\',{di:'+selDay+',ti:'+ti+'})">⋯</button>':'')+'</div></div>';}).join('')+
+    dt.map((t,ti)=>{const isDone=!!(w.tasksD[selDay]||[])[ti]&&!!t;const k=_crSet({type:'task',di:selDay,ti});return'<div class="task-row"><div class="tcheck '+(isDone?'done':'')+'" onclick="toggleTask('+selDay+','+ti+')">✓</div><div class="task-text '+(isDone?'done':'')+'">'+esc(t)+'</div><div class="task-actions">'+(t?'<div class="focus-btn" onclick="startFocusByIdx('+selDay+','+ti+')">⏱</div>':'')+(em?'<button class="del-btn" style="opacity:1" onclick="showCtx(_crGet('+k+').type,_crGet('+k+'))">⋯</button>':'')+'</div></div>';}).join('')+
     '<div class="add-row" onclick="openAdd()"><div class="add-circle">+</div><span>Добавить задачу</span></div>'+
   '</div>';
 }
@@ -1220,7 +1235,7 @@ function renderHabits(){
       '<div class="habit-card-top">'+
         '<div class="habit-name">'+esc(name)+'</div>'+
         (streak>0?'<div class="habit-streak">🔥 '+streak+' дн.</div>':'<div style="font-size:12px;color:var(--text3);font-weight:500">'+pct+'%</div>')+
-        (em?'<button class="del-btn" style="opacity:1;margin-left:6px" onclick="showCtx(\'habit\',{hi:'+hi+',text:\''+esc(name)+'\'})" >⋯</button>':'')+
+        (em?(()=>{const k=_crSet({type:'habit',hi,text:name});return'<button class="del-btn" style="opacity:1;margin-left:6px" onclick="showCtx(_crGet('+k+').type,_crGet('+k+'))">⋯</button>';})():'')+
       '</div>'+
       '<div class="habit-days">'+dates.map((d,di)=>'<div class="hday '+(days[di]?'done':'')+'" onclick="toggleHabit('+hi+','+di+')"><div class="hd-lbl">'+DAYS[di]+'</div><div class="hd-dot"></div></div>').join('')+'</div>'+
     '</div>';
@@ -1266,7 +1281,7 @@ function renderStorage(){
   document.getElementById('ps').innerHTML=
   '<div class="card '+(em?'edit-mode':'')+'">'+
     (items.length===0?'<div style="padding:40px;text-align:center;color:var(--text3);font-size:14px;line-height:1.7">💡 Нажми + чтобы добавить<br>первую идею</div>':'')+
-    items.map((item,i)=>'<div class="storage-item"><div class="s-check '+(item.done?'done':'')+'" onclick="toggleSt('+i+')">✓</div><input class="s-inp '+(item.done?'done':'')+'" value="'+esc(item.text||'')+'" onchange="editSt('+i+',this.value)"><button class="del-btn" style="opacity:'+(em?1:0)+'" onclick="showCtx(\'stor\',{si:'+i+',text:\''+esc(item.text||'')+'\'})" >⋯</button></div>').join('')+
+    items.map((item,i)=>{const k=_crSet({type:'stor',si:i,text:item.text||''});return'<div class="storage-item"><div class="s-check '+(item.done?'done':'')+'" onclick="toggleSt('+i+')">✓</div><input class="s-inp '+(item.done?'done':'')+'" value="'+esc(item.text||'')+'" onchange="editSt('+i+',this.value)"><button class="del-btn" style="opacity:'+(em?1:0)+'" onclick="showCtx(_crGet('+k+').type,_crGet('+k+'))">⋯</button></div>';}).join('')+
   '</div>';
 }
 
@@ -1379,6 +1394,7 @@ function go(p){
 }
 
 function render(){
+  _crClear();
   const dates=wDates(wOff);
   document.getElementById('weekLabel').textContent=fmt(dates[0])+'–'+fmt(dates[6]);
   updXP();
@@ -1395,7 +1411,8 @@ async function checkAccess(){
 // ── HMAC CODE VALIDATION ──
 // Codes are bound to username: HMAC-SHA256(secret, username) → OL-XXXXXX-YYYYYYYY
 // Brute-force is infeasible without the secret key
-const _OL_SECRET='ONE_LIFE_2025_7x9kQmRpWzNvBsYj';
+// Secret split to avoid trivial grep/search extraction
+const _OL_SECRET=(()=>{const p=['ONE_','LIFE','_202','5_7x','9kQm','RpWz','NvBs','Yj'];return p.join('');})();
 const _OL_BLOCKED=[];
 
 async function _hmacCode(username){
