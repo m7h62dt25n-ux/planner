@@ -10,6 +10,9 @@
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.json">
 <title>ONE LIFE</title>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Manrope:wght@600;700;800&display=swap');
 
@@ -357,6 +360,24 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
 .apikey-hint{font-size:11px;color:var(--text3);margin-top:7px;line-height:1.5}
 .apikey-hint a{color:var(--accent);text-decoration:none}
 
+/* ── SYNC DOT ── */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);transition:background 0.4s,box-shadow 0.4s;flex-shrink:0}
+.sync-dot.syncing{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:pulse 1s ease-in-out infinite}
+.sync-dot.synced{background:var(--green);box-shadow:0 0 6px rgba(52,211,153,0.5)}
+.sync-dot.error{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+/* ── FIREBASE SETUP ── */
+.fb-setup{background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:0.5px solid var(--border);border-radius:var(--r-xl);padding:16px;margin-bottom:14px}
+.fb-setup-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:4px;display:flex;align-items:center;gap:7px}
+.fb-setup-desc{font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:12px}
+.fb-setup-desc a{color:var(--accent);text-decoration:none}
+.fb-inp{width:100%;background:var(--bg3);border:0.5px solid var(--border2);border-radius:var(--r);padding:10px 13px;color:var(--text);font-size:13px;font-family:'Inter',sans-serif;outline:none;margin-bottom:8px;transition:border-color 0.2s;-webkit-appearance:none}
+.fb-inp:focus{border-color:rgba(124,110,255,0.4)}
+.fb-btn{width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:var(--r);padding:11px;color:#fff;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:transform 0.15s;box-shadow:0 4px 16px var(--glow)}
+.fb-btn:active{transform:scale(0.97)}
+.fb-status{font-size:12px;margin-top:8px;text-align:center;min-height:16px;color:var(--text3)}
+.fb-status.ok{color:var(--green)}
+.fb-status.err{color:var(--red)}
 /* ── HIDDEN ── */
 .hidden{display:none!important}
 
@@ -406,6 +427,7 @@ html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-fam
         <span class="xp-pill-lv" id="xpLv">1</span>
         <div class="xp-pill-bar"><div class="xp-pill-fill" id="xpBar" style="width:0%"></div></div>
       </div>
+      <div class="sync-dot" id="syncDot" title="Синхронизация"></div>
       <button class="edit-btn" id="editBtn" onclick="toggleEdit()">Изменить</button>
     </div>
   </div>
@@ -455,9 +477,91 @@ const ACHIEV=[
 let page='week', wOff=0, selDay=0, em=false;
 let focusInterval=null, focusTotal=25*60, focusLeft=focusTotal, focusRunning=false;
 
-// ── STORAGE ──
+// ── LOCAL STORAGE ──
 const ld=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}};
-const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+const svLocal=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{}};
+
+// ── FIREBASE SYNC ──
+let fbDb=null, fbUid=null, fbReady=false, syncQ=new Set();
+
+function setSyncDot(state){
+  const d=document.getElementById('syncDot');
+  if(!d)return;
+  d.className='sync-dot'+(state?' '+state:'');
+}
+
+async function hashKey(key){
+  try{
+    const enc=new TextEncoder().encode(key);
+    const buf=await crypto.subtle.digest('SHA-256',enc);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,40);
+  }catch{return btoa(key).replace(/[^a-z0-9]/gi,'').slice(0,40);}
+}
+
+function fbPath(k){return 'u/'+fbUid+'/'+k.replace(/[.#$\[\]/]/g,'_');}
+
+async function initFirebase(activationKey){
+  const cfg=ld('fb_cfg',null);
+  if(!cfg||!cfg.databaseURL)return;
+  try{
+    if(!firebase.apps.length)firebase.initializeApp(cfg);
+    fbDb=firebase.database();
+    fbUid=await hashKey(activationKey);
+    fbReady=true;
+    setSyncDot('syncing');
+    // Pull all cloud data first, then merge (cloud wins for existing keys)
+    const snap=await fbDb.ref('u/'+fbUid).get();
+    if(snap.exists()){
+      const data=snap.val();
+      Object.entries(data).forEach(([k,v])=>{
+        // restore original key name (underscores back to dots for wk_ keys)
+        const orig=k.replace(/^wk_minus/,'wk_-');
+        svLocal(orig,v);
+      });
+      setSyncDot('synced');
+      render();
+    }else{
+      // First time on this device — push local data to cloud
+      pushAllToCloud();
+    }
+    // Real-time listener for changes from other devices
+    fbDb.ref('u/'+fbUid).on('value',snap=>{
+      if(!snap.exists())return;
+      const data=snap.val();
+      let changed=false;
+      Object.entries(data).forEach(([k,v])=>{
+        const orig=k.startsWith('wk_minus')?k.replace('wk_minus','wk_-'):k;
+        const cur=localStorage.getItem(orig);
+        const newStr=JSON.stringify(v);
+        if(cur!==newStr){svLocal(orig,v);changed=true;}
+      });
+      if(changed)render();
+      setSyncDot('synced');
+    });
+  }catch(e){fbReady=false;setSyncDot('error');console.warn('Firebase:',e);}
+}
+
+function pushAllToCloud(){
+  if(!fbDb||!fbUid)return;
+  const keys=['hb2','st','xp','achievements','claude_key'];
+  for(let i=-52;i<=0;i++){keys.push('wk_'+i);}
+  const updates={};
+  keys.forEach(k=>{
+    const v=localStorage.getItem(k);
+    if(v)try{updates[fbPath(k)]=JSON.parse(v);}catch{}
+  });
+  fbDb.ref().update(updates).then(()=>setSyncDot('synced')).catch(()=>setSyncDot('error'));
+}
+
+const sv=(k,v)=>{
+  svLocal(k,v);
+  if(fbReady&&fbDb&&fbUid){
+    setSyncDot('syncing');
+    fbDb.ref(fbPath(k)).set(v)
+      .then(()=>setSyncDot('synced'))
+      .catch(()=>setSyncDot('error'));
+  }
+};
 
 // ── WEEK DATA ──
 function mkWeek(){return{goals:['','','','',''],goalsD:[false,false,false,false,false],tasks:[[],[],[],[],[],[],[]],tasksD:[[],[],[],[],[],[],[]],mood:Array(7).fill(null)};}
@@ -856,6 +960,7 @@ async function renderCoach(){
     '<div class="er-row"><span>Настроение</span><span class="er-val">'+ei.mo+'/10</span></div><div class="er-track"><div class="er-fill" style="width:'+ei.mo*10+'%"></div></div>'+
     '<div style="margin-top:6px;font-size:12px;color:var(--text3)">Связь энергии и продуктивности: <b style="color:var(--accent)">'+corr+'%</b></div>'+
   '</div>'+
+  fbSetupHtml()+
   '<div class="apikey-block">'+
     '<div class="apikey-label">Claude API Key (для AI-коуча)</div>'+
     '<div class="apikey-row"><input class="apikey-input" id="apikeyInp" type="password" placeholder="sk-ant-api03-..." value="'+(ld('claude_key','')||'')+'"><button class="apikey-save" onclick="saveApiKey()">Сохранить</button></div>'+
@@ -941,11 +1046,12 @@ function doLogin(){
   const err=document.getElementById('li_err');
   if(!u||!c){err.textContent='Заполните все поля';return;}
   if(!validateKey(u,c)){err.textContent='Неверный формат. Пример: OL-ABC123-DEF45678';return;}
-  sv('ol_access',{u,k:c,exp:Date.now()+365*24*60*60*1000});
+  svLocal('ol_access',{u,k:c,exp:Date.now()+365*24*60*60*1000});
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('app').style.display='flex';
   document.getElementById('fab').style.display='flex';
   setTimeout(()=>{document.getElementById('app').classList.add('visible');},50);
+  initFirebase(c);
   updXP();render();
 }
 
@@ -956,6 +1062,37 @@ document.addEventListener('keydown',e=>{
     else if(document.getElementById('loginScreen').style.display!=='none')doLogin();
   }
 });
+
+// ── FIREBASE SETUP UI ──
+function fbSetupHtml(){
+  const cfg=ld('fb_cfg',null);
+  const hasDb=cfg&&cfg.databaseURL;
+  const statusCls=fbReady?'ok':hasDb?'err':'';
+  const statusTxt=fbReady?'✅ Подключено — данные синхронизируются':hasDb?'⚠️ Ошибка подключения. Проверь URL':'';
+  return '<div class="fb-setup">'+
+    '<div class="fb-setup-title"><div class="sync-dot '+(fbReady?'synced':hasDb?'error':'')+'" style="position:static"></div> Синхронизация между устройствами</div>'+
+    '<div class="fb-setup-desc">Создай бесплатный проект на <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Realtime Database → скопируй URL базы.</div>'+
+    '<input class="fb-inp" id="fbUrlInp" placeholder="https://your-app-default-rtdb.firebaseio.com" value="'+(hasDb?cfg.databaseURL:'')+'" autocomplete="off" autocorrect="off" spellcheck="false">'+
+    '<input class="fb-inp" id="fbApiInp" placeholder="Web API Key (из настроек проекта)" value="'+(cfg?.apiKey||'')+'" autocomplete="off" spellcheck="false">'+
+    '<button class="fb-btn" onclick="saveFbConfig()">Подключить синхронизацию</button>'+
+    '<div class="fb-status '+statusCls+'">'+statusTxt+'</div>'+
+  '</div>';
+}
+
+async function saveFbConfig(){
+  const url=(document.getElementById('fbUrlInp')?.value||'').trim();
+  const key=(document.getElementById('fbApiInp')?.value||'').trim();
+  if(!url||!url.startsWith('https://')){showToast('⚠️ Введи корректный URL базы');return;}
+  const cfg={apiKey:key,databaseURL:url,projectId:url.split('.')[0].replace('https://','')};
+  svLocal('fb_cfg',cfg);
+  showToast('🔄 Подключаюсь...');
+  const acc=ld('ol_access',null);
+  if(acc?.k){
+    fbDb=null;fbUid=null;fbReady=false;
+    if(firebase.apps.length)firebase.apps.forEach(a=>a.delete().catch(()=>{}));
+    setTimeout(async()=>{await initFirebase(acc.k);renderCoach();},600);
+  }
+}
 
 // ── API KEY ──
 function saveApiKey(){
@@ -981,6 +1118,8 @@ window.addEventListener('load',()=>{
         document.getElementById('app').style.display='flex';
         document.getElementById('fab').style.display='flex';
         setTimeout(()=>{document.getElementById('app').classList.add('visible');},50);
+        const acc=ld('ol_access',null);
+        if(acc?.k)initFirebase(acc.k);
         updXP();render();
       }else{
         document.getElementById('loginScreen').style.display='flex';
